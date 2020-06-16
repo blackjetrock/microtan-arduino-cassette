@@ -399,7 +399,7 @@ struct
 // Sends a bit out of the ear port
 
 // for fx502p
-const int base_period=208;
+const int base_period=200;
 //const int base_period=104;
 
 void send_bit(int b)
@@ -413,26 +413,30 @@ void send_bit(int b)
   if( b )
     {
       // Send 1
-      for(i=0;i<8;i++)
+      for(i=0;i<1;i++)
 	{
-	  digitalWrite(earPin, HIGH);
-	  delayMicroseconds(base_period);
 	  digitalWrite(earPin, LOW);
+	  delayMicroseconds(base_period*2);
+	  digitalWrite(earPin, HIGH);
 	  delayMicroseconds(base_period);
 	}
     }
   else
     {
       // Send 0
-      for(i=0;i<4;i++)
+      for(i=0;i<1;i++)
 	{
-	  digitalWrite(earPin, HIGH);
-	  delayMicroseconds(base_period*2);
 	  digitalWrite(earPin, LOW);
-	  delayMicroseconds(base_period*2);
+	  delayMicroseconds(base_period);
+	  digitalWrite(earPin, HIGH);
+	  delayMicroseconds(base_period);
 	}
     }
 }
+
+//
+// Sends the data buffer back to the Microtan
+//
 
 void send_databytes()
 {
@@ -445,19 +449,24 @@ void send_databytes()
   
   // Send stored data back out
   // Header
-  for(i=0; i<2400*5; i++)
+  for(i=0; i<2400*30; i++)
     {
-      digitalWrite(earPin, HIGH);
-      delayMicroseconds(base_period);
+#if 0      
       digitalWrite(earPin, LOW);
       delayMicroseconds(base_period);
+      digitalWrite(earPin, HIGH);
+      delayMicroseconds(base_period);
+#else
+      send_bit(0);
+#endif
+      
     }
   
   // Now send data back
-  for(b=0; b<bytecount; b++)
+  for(b=1; b<bytecount; b++)
     {
       // Start bit
-      send_bit(0);
+      send_bit(1);
       
       parity = 0;
       databyte = stored_bytes[b];
@@ -465,7 +474,7 @@ void send_databytes()
       // Send bits
       for(j=0; j<8; j++)
 	{
-	  if( databyte & 1 )
+	  if( !(databyte & 1) )
 	    {
 	      parity++;
 	      send_bit(1);
@@ -478,7 +487,7 @@ void send_databytes()
 	}
       
       // Send parity
-      if( parity & 1 )
+      if( (parity & 1) )
 	{
 	  send_bit(1);
 	}
@@ -487,9 +496,14 @@ void send_databytes()
 	  send_bit(0);
 	}
       
-      // Send two 1's
-      send_bit(1);
-      send_bit(1);
+      // Send two 0's
+      send_bit(0);
+      send_bit(0);
+
+      // Send two 0's
+      send_bit(0);
+      send_bit(0);
+      
       
     }
 }
@@ -578,6 +592,12 @@ void cmd_close(String cmd)
   myFile.close();
 }
 
+void cmd_send(String cmd)
+{
+  send_databytes();
+}
+
+
 void cmd_writefile(String cmd)
 {
   char filename[20] = "U___.txt";
@@ -622,7 +642,7 @@ void cmd_writefile(String cmd)
     }
 }
 
-const int NUM_CMDS = 8;  
+const int NUM_CMDS = 9;  
 
 String cmd;
 struct
@@ -639,6 +659,7 @@ struct
     {"i",         cmd_index},
     {"close",     cmd_close},
     {"writefile", cmd_writefile},
+    {"send",      cmd_send},
   };
 
 
