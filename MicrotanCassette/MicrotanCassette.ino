@@ -1,6 +1,8 @@
 #include <SPI.h>
 #include <SD.h>
 
+void cmd_help(String cmd);
+  
 // set up variables using the SD utility library functions:
 Sd2Card card;
 SdVolume volume;
@@ -33,7 +35,7 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(micPin), lowISR, FALLING);
       
   pinMode(LED_BUILTIN, OUTPUT);
-
+  
   if (!SD.begin(53)) {
     Serial.println("SD Card initialisation failed!");
   }
@@ -337,7 +339,8 @@ void state_chkpar1()
     }
 }
 
-int bytecount = 0;
+// How many bytes in the buffer. We have a default for testing without a Microtan
+int bytecount = 6;
 
 void state_init()
 {
@@ -348,7 +351,12 @@ void state_init()
   
 }
 
-unsigned char stored_bytes[MAX_BYTES];
+// Where the received data goes
+
+unsigned char stored_bytes[MAX_BYTES] =
+  {
+    0x0a, 0x10, 0x11, 0x12, 0x13, 0x14
+  };
 
 void state_bytedone()
 {
@@ -631,6 +639,50 @@ void cmd_send(String cmd)
 }
 
 
+void cmd_listfiles(String cmd)
+{
+  File dir;
+  int numTabs = 0;
+  
+  dir = SD.open("/");
+  
+  while (true) {
+    
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+
+    Serial.print(entry.name());
+
+    if (entry.isDirectory())
+      {
+	Serial.println("/");
+      }
+    else
+      {
+	// files have sizes, directories do not
+	Serial.print("\t\t");
+	Serial.println(entry.size(), DEC);
+      }
+    entry.close();
+  }
+}
+
+void cmd_initsd(String cmd)
+{
+  if (!SD.begin(53)) {
+    Serial.println("SD Card initialisation failed!");
+  }
+  else
+    {
+      Serial.println("SD card initialised.");
+    }
+
+}
+
+
 void cmd_writefile(String cmd)
 {
   char filename[20] = "U___.txt";
@@ -691,7 +743,8 @@ void cmd_writefile(String cmd)
   Serial.println("File written");
 }
 
-const int NUM_CMDS = 9;  
+const int NUM_CMDS = 12;
+
 
 String cmd;
 struct
@@ -709,8 +762,21 @@ struct
     {"close",     cmd_close},
     {"writefile", cmd_writefile},
     {"send",      cmd_send},
+    {"listfiles", cmd_listfiles},
+    {"initsd",    cmd_initsd},
+    {"help",      cmd_help},
   };
 
+
+void cmd_help(String cmd)
+{
+  int i;
+  
+  for(i=0; i<NUM_CMDS; i++)
+    {
+      Serial.println(cmdlist[i].cmdname);
+    }
+}
 
 void run_monitor()
 {
