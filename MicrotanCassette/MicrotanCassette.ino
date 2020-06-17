@@ -1,6 +1,11 @@
 #include <SPI.h>
 #include <SD.h>
 
+// set up variables using the SD utility library functions:
+Sd2Card card;
+SdVolume volume;
+SdFile root;
+
 File myFile;
 
 #define DEBUG_SERIAL 0
@@ -10,7 +15,9 @@ const int statPin = 8;
 const int dataPin = 9;
 const int earPin = 3;
 const int switchPin = 5;
-const int MAX_BYTES = 250;
+const int MAX_BYTES = 3000;
+
+const int chipSelect = 53;
 
 void setup()
 {
@@ -27,12 +34,13 @@ void setup()
       
   pinMode(LED_BUILTIN, OUTPUT);
 
-#if 0
-  if (!SD.begin(10)) {
-    Serial.println("initialization failed!");
-    return;
+  if (!SD.begin(53)) {
+    Serial.println("SD Card initialisation failed!");
   }
-#endif   
+  else
+    {
+      Serial.println("SD card initialised.");
+    }
 }
 
 #define IF_2400 if(delta<500)
@@ -636,9 +644,17 @@ void cmd_writefile(String cmd)
     ((stored_bytes[0] >> 4) & 0xF) *  10 +
     ((stored_bytes[0] >> 0) & 0xF) *   1;
 
-  sprintf(filename, "%x%d_502.txt",
-	  (stored_bytes[1]>>4) & 0xF,
-	  filenum);
+  // Get the filename from the data, we can't allow spaces in filenames
+  sprintf(filename, "%c%c%c%c%c%c%c%c",
+	  (stored_bytes[1]==' ')?'_':stored_bytes[1],
+	  (stored_bytes[2]==' ')?'_':stored_bytes[2],
+	  (stored_bytes[3]==' ')?'_':stored_bytes[3],
+	  (stored_bytes[4]==' ')?'_':stored_bytes[4],
+	  (stored_bytes[5]==' ')?'_':stored_bytes[5],
+	  (stored_bytes[6]==' ')?'_':stored_bytes[6],
+	  (stored_bytes[7]==' ')?'_':stored_bytes[7],
+	  (stored_bytes[8]==' ')?'_':stored_bytes[8]
+	  );
   
   Serial.println("");
   Serial.print("Writing ");
@@ -656,7 +672,13 @@ void cmd_writefile(String cmd)
       // Write data
       for(i=0; i<bytecount; i++)
 	{
-	  Serial.println(stored_bytes[i], HEX);
+	  myFile.print(stored_bytes[i], HEX);
+	  myFile.print(" ");
+	  if( (i%16) == 0 )
+	    {
+	      myFile.println("");
+	    }
+	  
 	}
       
       myFile.close();
@@ -665,6 +687,8 @@ void cmd_writefile(String cmd)
     {
       Serial.println("Could not open file");
     }
+
+  Serial.println("File written");
 }
 
 const int NUM_CMDS = 9;  
@@ -729,7 +753,7 @@ void loop()
   run_monitor();
   
   
-  if( digitalRead(switchPin) )
+  if( digitalRead(switchPin),0 )
     {
       // Send data in buffer back
       send_databytes();      
