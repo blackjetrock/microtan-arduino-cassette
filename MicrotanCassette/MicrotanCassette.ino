@@ -3,11 +3,14 @@
 
 File myFile;
 
+#define DEBUG_SERIAL 0
+
 const int micPin = 2;
 const int statPin = 8;
 const int dataPin = 9;
 const int earPin = 3;
 const int switchPin = 5;
+const int MAX_BYTES = 250;
 
 void setup()
 {
@@ -292,13 +295,17 @@ void state_chkpar0()
   if( par == 0 )
     {
       // All ok
+#if DEBUG_SERIAL      
       Serial.println("D");
       Serial.println(databyte,HEX);
+#endif
     }
   else
     {
+#if DEBUG_SERIAL
       Serial.println("E");
       Serial.println(databyte,HEX);
+#endif
     }
 }
 
@@ -308,13 +315,17 @@ void state_chkpar1()
   if( par == 1 )
     {
       // All ok
+#if DEBUG_SERIAL
       Serial.println("D");
       Serial.println(databyte,HEX);
+#endif
     }
   else
     {
+#if DEBUG_SERIAL
       Serial.println("E");
       Serial.println(databyte,HEX);
+#endif
     }
 }
 
@@ -322,12 +333,14 @@ int bytecount = 0;
 
 void state_init()
 {
+#if DEBUG_SERIAL  
   Serial.println("I");
+#endif  
   // bytecount = 0;
   
 }
 
-unsigned char stored_bytes[200];
+unsigned char stored_bytes[MAX_BYTES];
 
 void state_bytedone()
 {
@@ -335,7 +348,7 @@ void state_bytedone()
   stored_bytes[bytecount] = databyte;
   
   Serial.print(databyte, HEX);
-  Serial.println("s");
+  Serial.print(" ");
 
   if( bytecount == 0 )
     {
@@ -351,6 +364,10 @@ void state_bytedone()
 
   //  myFile.println(databyte, HEX);
   bytecount++;
+  if( bytecount> MAX_BYTES )
+    {
+      bytecount = MAX_BYTES;
+    }
 
   if( (bytecount % 16) == 0 )
     {
@@ -446,6 +463,9 @@ void send_databytes()
   int parity;
  
   Serial.println("Sending...");
+
+  // Turn interrupts of as we want good timing for the data
+  noInterrupts();
   
   // Send stored data back out
   // Header
@@ -496,16 +516,21 @@ void send_databytes()
 	  send_bit(0);
 	}
       
-      // Send two 0's
+      // Send two 0's as stop
       send_bit(0);
       send_bit(0);
 
-      // Send two 0's
-      send_bit(0);
-      send_bit(0);
-      
-      
+      // Send extra delay after header as load seems to fail without this
+      if( b == 12 )
+	{
+	  // 60ms of zeros
+	  for(int z=0;z<300;z++)
+	    {
+	      send_bit(0);
+	    }
+	}
     }
+  interrupts();
 }
 
 //
