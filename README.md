@@ -14,9 +14,12 @@ When using the SAVE command the code dsplays data as it is received. The serial 
 Commands
 
 clear:    Clears the memory buffer ready for a new SAVE.
+
 display:  Displays the current contents of the buffer
+
 savefile: Saves the buffer to a file on the attached SD card. The filename used is the embedded name in the data. 
           Data is curently saved in ASCII hex but binary is probably better as it can be directly sent back to the Microtan.
+
 send:     Sends the data buffer back to the Microtan. There's a spurious byte at the start of the buffer that isn't sent back.
 
 
