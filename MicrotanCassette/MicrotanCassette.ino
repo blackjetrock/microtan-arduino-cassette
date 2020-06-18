@@ -17,7 +17,7 @@ const int statPin = 8;
 const int dataPin = 9;
 const int earPin = 3;
 const int switchPin = 5;
-const int MAX_BYTES = 3000;
+const int MAX_BYTES = 5000;
 
 const int chipSelect = 53;
 
@@ -340,14 +340,13 @@ void state_chkpar1()
 }
 
 // How many bytes in the buffer. We have a default for testing without a Microtan
-int bytecount = 6;
+int bytecount = 15;
 
 void state_init()
 {
 #if DEBUG_SERIAL  
   Serial.println("I");
 #endif  
-  // bytecount = 0;
   
 }
 
@@ -355,41 +354,44 @@ void state_init()
 
 unsigned char stored_bytes[MAX_BYTES] =
   {
+    'T', 'A', 'S', 'T', ' ', ' ', '.', 'A',
     0x0a, 0x10, 0x11, 0x12, 0x13, 0x14
   };
 
 void state_bytedone()
 {
-
-  stored_bytes[bytecount] = databyte;
-  
-  Serial.print(databyte, HEX);
-  Serial.print(" ");
-
-  if( bytecount == 0 )
+  // There's a spurious character at the start, we don't want o store it at all
+  if( bytecount >= 0 )
     {
-      if( databyte & 1 )
+      stored_bytes[bytecount] = databyte;
+      
+      Serial.print(databyte, HEX);
+      Serial.print(" ");
+      
+      if( bytecount == 0 )
 	{
-	  digitalWrite(LED_BUILTIN, HIGH);
+	  if( databyte & 1 )
+	    {
+	      digitalWrite(LED_BUILTIN, HIGH);
+	    }
+	  else
+	    {
+	      digitalWrite(LED_BUILTIN, LOW);
+	    }
 	}
-      else
+      
+      //  myFile.println(databyte, HEX);
+      bytecount++;
+      if( bytecount >= MAX_BYTES )
 	{
-	  digitalWrite(LED_BUILTIN, LOW);
+	  bytecount = MAX_BYTES;
 	}
-    }
-
-  //  myFile.println(databyte, HEX);
-  bytecount++;
-  if( bytecount> MAX_BYTES )
-    {
-      bytecount = MAX_BYTES;
-    }
-
-  if( (bytecount % 16) == 0 )
-    {
-      Serial.println("");
-    }
-  
+      
+      if( (bytecount % 16) == 0 )
+	{
+	  Serial.println("");
+	}
+    }  
 }
 
 
@@ -499,7 +501,7 @@ void send_databytes()
     }
   
   // Now send data back
-  for(b=1; b<bytecount; b++)
+  for(b=0; b<bytecount; b++)
     {
       // Start bit
       send_bit(1);
@@ -585,8 +587,10 @@ void cmd_modify(String cmd)
   Serial.println("MOD");
   arg = cmd.substring(1);
 
-  stored_bytes[indx] = arg.toInt();
-  
+  if( indx <= MAX_BYTES )
+    {
+      stored_bytes[indx] = arg.toInt();
+    }
 }
 
 
@@ -625,7 +629,7 @@ void cmd_display(String cmd)
 // Clear the buffer
 void cmd_clear(String cmd)
 {
-  bytecount = 0;
+  bytecount = -1;    // We reset to -1 so we drop the leading spurious character
 }
 
 void cmd_close(String cmd)
@@ -638,6 +642,49 @@ void cmd_send(String cmd)
   send_databytes();
 }
 
+// Send the file with the given name
+void cmd_readfile(String cmd)
+{
+  String arg;
+  
+  arg = cmd.substring(strlen("readfile "));
+
+  Serial.print("Reading file '");
+  Serial.print(arg);
+  Serial.println("'");
+  
+  myFile = SD.open(arg);
+
+  if (myFile)
+    {
+      Serial.println("Sending data...");
+      
+      // Read from the file and store it in the buffer
+      bytecount = 0;
+      
+      while (myFile.available())
+	{
+	  stored_bytes[bytecount++] = myFile.read();
+	  if( bytecount >= MAX_BYTES )
+	    {
+	      bytecount = MAX_BYTES;
+	    }
+	  
+	}
+      
+      // close the file:
+      myFile.close();
+
+      Serial.print(bytecount);
+      Serial.println(" bytes read.");
+    }
+  else
+    {
+      // if the file didn't open, print an error:
+      Serial.print("Error opening ");
+      Serial.println(arg);
+    }
+}
 
 void cmd_listfiles(String cmd)
 {
@@ -645,6 +692,9 @@ void cmd_listfiles(String cmd)
   int numTabs = 0;
   
   dir = SD.open("/");
+
+  // return to the first file in the directory
+  dir.rewindDirectory();
   
   while (true) {
     
@@ -668,6 +718,8 @@ void cmd_listfiles(String cmd)
       }
     entry.close();
   }
+
+  dir.close();
 }
 
 void cmd_initsd(String cmd)
@@ -686,26 +738,18 @@ void cmd_initsd(String cmd)
 void cmd_writefile(String cmd)
 {
   char filename[20] = "U___.txt";
-  int filenum = 0;
   int i;
   
-  // Work out what file type to use
-  // First two bytes are file number and type
-  filenum = 
-    ((stored_bytes[1] >> 0) & 0xF) * 100 +
-    ((stored_bytes[0] >> 4) & 0xF) *  10 +
-    ((stored_bytes[0] >> 0) & 0xF) *   1;
-
   // Get the filename from the data, we can't allow spaces in filenames
   sprintf(filename, "%c%c%c%c%c%c%c%c",
+	  (stored_bytes[0]==' ')?'_':stored_bytes[0],
 	  (stored_bytes[1]==' ')?'_':stored_bytes[1],
 	  (stored_bytes[2]==' ')?'_':stored_bytes[2],
 	  (stored_bytes[3]==' ')?'_':stored_bytes[3],
 	  (stored_bytes[4]==' ')?'_':stored_bytes[4],
 	  (stored_bytes[5]==' ')?'_':stored_bytes[5],
 	  (stored_bytes[6]==' ')?'_':stored_bytes[6],
-	  (stored_bytes[7]==' ')?'_':stored_bytes[7],
-	  (stored_bytes[8]==' ')?'_':stored_bytes[8]
+	  (stored_bytes[7]==' ')?'_':stored_bytes[7]
 	  );
   
   Serial.println("");
@@ -724,13 +768,7 @@ void cmd_writefile(String cmd)
       // Write data
       for(i=0; i<bytecount; i++)
 	{
-	  myFile.print(stored_bytes[i], HEX);
-	  myFile.print(" ");
-	  if( (i%16) == 0 )
-	    {
-	      myFile.println("");
-	    }
-	  
+	  myFile.write(stored_bytes[i]);
 	}
       
       myFile.close();
@@ -743,8 +781,7 @@ void cmd_writefile(String cmd)
   Serial.println("File written");
 }
 
-const int NUM_CMDS = 12;
-
+const int NUM_CMDS = 13;
 
 String cmd;
 struct
@@ -765,6 +802,7 @@ struct
     {"listfiles", cmd_listfiles},
     {"initsd",    cmd_initsd},
     {"help",      cmd_help},
+    {"readfile",  cmd_readfile},
   };
 
 
