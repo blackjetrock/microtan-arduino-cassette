@@ -354,7 +354,7 @@ void state_init()
 
 unsigned char stored_bytes[MAX_BYTES] =
   {
-    'T', 'A', 'S', 'T', ' ', ' ', '.', 'A',
+    'T', 'E', 'S', 'T', ' ', ' ', '.', 'A',
     0x0a, 0x10, 0x11, 0x12, 0x13, 0x14
   };
 
@@ -597,6 +597,11 @@ void cmd_modify(String cmd)
 void cmd_display(String cmd)
 {
   int i;
+  char ascii[17];
+  char c[2];
+  
+  int ascii_i = 0;
+  
   Serial.print("Byte Count:");
   Serial.print(bytecount);
   Serial.print("  Index:");
@@ -606,6 +611,10 @@ void cmd_display(String cmd)
     {
       if( (i%16)==0 )
 	{
+	  Serial.print(" ");
+	  Serial.print(ascii);
+	  ascii_i = 0;
+	  
 	  Serial.println("");
 	  if( i < 0x10)
 	    {
@@ -622,7 +631,20 @@ void cmd_display(String cmd)
       
       Serial.print(stored_bytes[i], HEX);
       Serial.print(" ");
+
+      if( isprint(stored_bytes[i]) )
+	{
+	  sprintf(c, "%c", stored_bytes[i]);
+	}
+	else
+	  {
+	    c[0] ='.';
+	  }
+      ascii[ascii_i++] = c[0];
     }
+
+  Serial.print(ascii);
+  Serial.print(" ");
   Serial.println("");
 }
 
@@ -642,12 +664,26 @@ void cmd_send(String cmd)
   send_databytes();
 }
 
-// Send the file with the given name
+// Deletes a file
+void cmd_deletefile(String cmd)
+{
+  String arg;
+  
+  arg = cmd.substring(strlen("delete "));
+
+  Serial.print("Deleting file '");
+  Serial.print(arg);
+  Serial.println("'");
+  
+  SD.remove(arg);
+}
+
+// read the file with th egiven name into the buffer
 void cmd_readfile(String cmd)
 {
   String arg;
   
-  arg = cmd.substring(strlen("readfile "));
+  arg = cmd.substring(strlen("read "));
 
   Serial.print("Reading file '");
   Serial.print(arg);
@@ -657,8 +693,6 @@ void cmd_readfile(String cmd)
 
   if (myFile)
     {
-      Serial.println("Sending data...");
-      
       // Read from the file and store it in the buffer
       bytecount = 0;
       
@@ -735,6 +769,10 @@ void cmd_initsd(String cmd)
 }
 
 
+// Writes the buffer to a file.
+// Deletes any file that exists with the same name so that the resulting
+// file is the same size as the buffer
+
 void cmd_writefile(String cmd)
 {
   char filename[20] = "U___.txt";
@@ -760,6 +798,9 @@ void cmd_writefile(String cmd)
   Serial.print("'");
   Serial.println("");
 
+  // Delete so we have no extra data if the file is currently larger than the buffer
+  SD.remove(filename);
+  
   // Open file for writing
   myFile = SD.open(filename, FILE_WRITE);
 
@@ -772,16 +813,19 @@ void cmd_writefile(String cmd)
 	}
       
       myFile.close();
+      
+      Serial.print(bytecount);
+      Serial.println(" bytes written");
     }
   else
     {
       Serial.println("Could not open file");
     }
 
-  Serial.println("File written");
+
 }
 
-const int NUM_CMDS = 13;
+const int NUM_CMDS = 14;
 
 String cmd;
 struct
@@ -790,19 +834,20 @@ struct
   CMD_FPTR   handler;
 } cmdlist [NUM_CMDS] =
   {
-    {"m",         cmd_modify},
-    {"clear",     cmd_clear},
-    {"display",   cmd_display},
-    {"next",      cmd_next},
-    {"prev",      cmd_prev},
-    {"i",         cmd_index},
-    {"close",     cmd_close},
-    {"writefile", cmd_writefile},
-    {"send",      cmd_send},
-    {"listfiles", cmd_listfiles},
-    {"initsd",    cmd_initsd},
-    {"help",      cmd_help},
-    {"readfile",  cmd_readfile},
+    {"m",           cmd_modify},
+    {"clear",       cmd_clear},
+    {"display",     cmd_display},
+    {"next",        cmd_next},
+    {"prev",        cmd_prev},
+    {"i",           cmd_index},
+    {"close",       cmd_close},
+    {"write",       cmd_writefile},
+    {"send",        cmd_send},
+    {"list",        cmd_listfiles},
+    {"initsd",      cmd_initsd},
+    {"help",        cmd_help},
+    {"read",        cmd_readfile},
+    {"delete",      cmd_deletefile},
   };
 
 
