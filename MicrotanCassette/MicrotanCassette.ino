@@ -10,7 +10,11 @@ SdFile root;
 
 File myFile;
 
+// Capture file
+File dumpfile;
+
 #define DEBUG_SERIAL 0
+#define DIRECT_WRITE 0
 
 const int micPin = 2;
 const int statPin = 8;
@@ -358,6 +362,11 @@ unsigned char stored_bytes[MAX_BYTES] =
     0x0a, 0x10, 0x11, 0x12, 0x13, 0x14
   };
 
+// Two versions of this, one that writes data to a buffer that you have to then write to
+// a file, and a second that writes diretly to the SD card
+
+#if !DIRECT_WRITE
+
 void state_bytedone()
 {
   // There's a spurious character at the start, we don't want to store it at all
@@ -393,6 +402,70 @@ void state_bytedone()
       Serial.println("");
     }
 }
+
+#else
+
+// This one writes dirctly to SD card
+// A clear is needed to reset counters etc
+
+int filename_i = 0;
+char filename[9] = "";
+
+void state_bytedone()
+{
+  // There's a spurious character at the start, we don't want to store it at all
+  if( bytecount >= 0 )
+    {
+      if( bytecount == 0 )
+	{
+	  // Reset filename capture
+	  filename_i = 0;
+	}
+
+      // We need to capture the filename
+      if( (bytecount >=0) && (bytecount <=7) )
+	{
+	  filename[filename_i++] = databyte;
+	}
+
+      if( bytecount == 8 )
+	{
+	  Serial.println(filename);
+	}
+      
+      // Write to file
+      dumpfile.write(databyte);
+      
+      Serial.print(databyte, HEX);
+      Serial.print(" ");
+      
+      if( bytecount == 0 )
+	{
+	  if( databyte & 1 )
+	    {
+	      digitalWrite(LED_BUILTIN, HIGH);
+	    }
+	  else
+	    {
+	      digitalWrite(LED_BUILTIN, LOW);
+	    }
+	}
+    }
+  
+  //  myFile.println(databyte, HEX);
+  bytecount++;
+  if( bytecount >= MAX_BYTES )
+    {
+      bytecount = MAX_BYTES;
+    }
+  
+  if( (bytecount % 16) == 0 )
+    {
+      Serial.println("");
+    }
+}
+
+#endif
 
 
 struct
@@ -539,7 +612,7 @@ void send_databytes()
       send_bit(0);
 
       // Send extra delay after header as load seems to fail without this
-      if( b == 12 )
+      if( b == 11 )
 	{
 	  // 60ms of zeros
 	  for(int z=0;z<300;z++)
@@ -649,14 +722,24 @@ void cmd_display(String cmd)
 }
 
 // Clear the buffer
+
+
 void cmd_clear(String cmd)
 {
   bytecount = -1;    // We reset to -1 so we drop the leading spurious character
+
+#if DIRECT_WRITE
+    SD.remove(filename);
+    dumpfile = SD.open("dumpfile.bin", FILE_WRITE);
+#endif
+  
 }
 
+
+// Close the capture file
 void cmd_close(String cmd)
 {
-  myFile.close();
+  dumpfile.close();
 }
 
 void cmd_send(String cmd)
