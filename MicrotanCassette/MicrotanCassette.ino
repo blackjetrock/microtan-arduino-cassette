@@ -17,7 +17,7 @@ const int statPin = 8;
 const int dataPin = 9;
 const int earPin = 3;
 const int switchPin = 5;
-const int MAX_BYTES = 5000;
+const int MAX_BYTES = 3000;
 
 const int chipSelect = 53;
 
@@ -360,7 +360,7 @@ unsigned char stored_bytes[MAX_BYTES] =
 
 void state_bytedone()
 {
-  // There's a spurious character at the start, we don't want o store it at all
+  // There's a spurious character at the start, we don't want to store it at all
   if( bytecount >= 0 )
     {
       stored_bytes[bytecount] = databyte;
@@ -379,19 +379,19 @@ void state_bytedone()
 	      digitalWrite(LED_BUILTIN, LOW);
 	    }
 	}
-      
-      //  myFile.println(databyte, HEX);
-      bytecount++;
-      if( bytecount >= MAX_BYTES )
-	{
-	  bytecount = MAX_BYTES;
-	}
-      
-      if( (bytecount % 16) == 0 )
-	{
-	  Serial.println("");
-	}
-    }  
+    }
+  
+  //  myFile.println(databyte, HEX);
+  bytecount++;
+  if( bytecount >= MAX_BYTES )
+    {
+      bytecount = MAX_BYTES;
+    }
+  
+  if( (bytecount % 16) == 0 )
+    {
+      Serial.println("");
+    }
 }
 
 
