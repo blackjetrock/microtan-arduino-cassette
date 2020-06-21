@@ -1,0 +1,122 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L arduino:Arduino_Mega2560_Shield XA1
+U 1 1 5EFE59EF
+P 8550 3550
+F 0 "XA1" H 8550 1169 60  0000 C CNN
+F 1 "Arduino_Mega2560_Shield" H 8550 1063 60  0000 C CNN
+F 2 "Arduino:Arduino_Mega2560_Shield" H 9250 6300 60  0001 C CNN
+F 3 "https://store.arduino.cc/arduino-mega-2560-rev3" H 9250 6300 60  0001 C CNN
+	1    8550 3550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Microtan_exp:TANBUS_EXPANSION EC1
+U 1 1 5EFF461A
+P 2800 4450
+F 0 "EC1" H 3228 4753 60  0000 L CNN
+F 1 "TANBUS_EXPANSION" H 3228 4647 60  0000 L CNN
+F 2 "TANBUS:TANBUS" H 2700 4450 60  0001 C CNN
+F 3 "" H 2700 4450 60  0000 C CNN
+	1    2800 4450
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR0101
+U 1 1 5F007371
+P 3750 950
+F 0 "#PWR0101" H 3750 800 50  0001 C CNN
+F 1 "+5V" H 3765 1123 50  0000 C CNN
+F 2 "" H 3750 950 50  0001 C CNN
+F 3 "" H 3750 950 50  0001 C CNN
+	1    3750 950 
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0102
+U 1 1 5F007A25
+P 3650 7500
+F 0 "#PWR0102" H 3650 7250 50  0001 C CNN
+F 1 "GND" H 3655 7327 50  0000 C CNN
+F 2 "" H 3650 7500 50  0001 C CNN
+F 3 "" H 3650 7500 50  0001 C CNN
+	1    3650 7500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 7500 3650 7350
+Wire Wire Line
+	3650 7350 3200 7350
+Wire Wire Line
+	3650 7350 3650 7250
+Wire Wire Line
+	3650 7250 3200 7250
+Connection ~ 3650 7350
+Wire Wire Line
+	3750 950  3750 1050
+Wire Wire Line
+	3750 1050 3200 1050
+Wire Wire Line
+	3750 1050 3750 1150
+Wire Wire Line
+	3750 1150 3200 1150
+Connection ~ 3750 1050
+$Comp
+L power:GND #PWR0103
+U 1 1 5F009320
+P 6800 6150
+F 0 "#PWR0103" H 6800 5900 50  0001 C CNN
+F 1 "GND" H 6805 5977 50  0000 C CNN
+F 2 "" H 6800 6150 50  0001 C CNN
+F 3 "" H 6800 6150 50  0001 C CNN
+	1    6800 6150
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR0104
+U 1 1 5F009829
+P 6450 4900
+F 0 "#PWR0104" H 6450 4750 50  0001 C CNN
+F 1 "+5V" H 6465 5073 50  0000 C CNN
+F 2 "" H 6450 4900 50  0001 C CNN
+F 3 "" H 6450 4900 50  0001 C CNN
+	1    6450 4900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6450 4900 6450 5400
+Wire Wire Line
+	6450 5400 7250 5400
+Wire Wire Line
+	6800 6150 6800 5200
+Wire Wire Line
+	6800 5200 7250 5200
+Wire Wire Line
+	3200 1850 3750 1850
+Wire Wire Line
+	9850 5700 10050 5700
+Wire Wire Line
+	9850 5600 10050 5600
+Wire Wire Line
+	9850 5500 10050 5500
+Wire Wire Line
+	9850 5400 10050 5400
+Text Label 10050 5700 0    50   ~ 0
+A0
+Text Label 3750 1850 0    50   ~ 0
+A0
+$EndSCHEMATC
