@@ -34,7 +34,8 @@ void setup()
   pinMode(switchPin,  INPUT); 
   pinMode(statPin,    OUTPUT); 
   pinMode(dataPin,    OUTPUT);
-  pinMode(earPin,     OUTPUT);
+
+
   
   attachInterrupt(digitalPinToInterrupt(micPin), lowISR, FALLING);
       
@@ -555,6 +556,11 @@ void send_databytes()
  
   Serial.println("Sending...");
 
+  // Make ear pin an output while sending then input at all other times so
+  // cassette inputs will still work
+
+  pinMode(earPin,     OUTPUT);
+
   // Turn interrupts of as we want good timing for the data
   noInterrupts();
   
@@ -622,6 +628,8 @@ void send_databytes()
 	}
     }
   interrupts();
+  
+  pinMode(earPin,     INPUT);
 }
 
 //
