@@ -1,5 +1,8 @@
+#include <SoftWire.h>
+
 #include <SPI.h>
 #include <SD.h>
+#include "miniOled.h"
 
 void cmd_help(String cmd);
   
@@ -40,30 +43,6 @@ const int MAX_BYTES = 5000;
 const int chipSelect = 53;
 #endif
 
-void setup()
-{
-  Serial.begin(115200);
-  Serial.println("\nMicrotan 65 Cassette Interface");
-
-  pinMode(micPin,     INPUT);
-  pinMode(switchPin,  INPUT); 
-  pinMode(statPin,    OUTPUT); 
-  pinMode(dataPin,    OUTPUT);
-
-
-  
-  attachInterrupt(digitalPinToInterrupt(micPin), lowISR, FALLING);
-      
-  pinMode(LED_BUILTIN, OUTPUT);
-  
-  if (!SD.begin(53)) {
-    Serial.println("SD Card initialisation failed!");
-  }
-  else
-    {
-      Serial.println("SD card initialised.");
-    }
-}
 
 #define IF_2400 if(delta<500)
 #define IF_1200 if(delta>=500)
@@ -1001,12 +980,209 @@ void run_monitor()
     }
 }
 
+// The switch menu/OLED display system
+
+
+enum ELEMENT_TYPE
+  {
+    BUTTON_ELEMENT = 10,
+    SUB_MENU,
+    MENU_END,
+  };
+
+struct MENU_ELEMENT
+{
+  enum ELEMENT_TYPE type;
+  char *text;
+  void *submenu;
+  void (*function)(struct MENU_ELEMENT *e);
+};
+
+struct MENU_ELEMENT *current_menu;
+struct MENU_ELEMENT *last_menu;
+struct MENU_ELEMENT *the_home_menu;
+
+void to_back_menu(struct MENU_ELEMENT *e)
+{
+  current_menu = last_menu;
+  draw_menu(current_menu);
+}
+
+void to_home_menu(struct MENU_ELEMENT *e)
+{
+  current_menu = the_home_menu;
+  draw_menu(current_menu);
+}
+
+void send_t_request1(struct MENU_ELEMENT *e)
+{
+}
+
+void send_t_request2(struct MENU_ELEMENT *e)
+{
+}
+
+void send_t_request3(struct MENU_ELEMENT *e)
+{
+}
+
+void send_hb_status_request(struct MENU_ELEMENT *e)
+{
+}
+
+
+void send_hb_up_request(struct MENU_ELEMENT *e)
+{
+}
+
+void send_hb_down_request(struct MENU_ELEMENT *e)
+{
+}
+
+void send_hb_hol_on(struct MENU_ELEMENT *e)
+{
+}
+void send_hb_hol_off(struct MENU_ELEMENT *e)
+{
+}
+
+// Garage controller
+struct MENU_ELEMENT elem_gar[] =
+  {
+    { BUTTON_ELEMENT, "STAT",   NULL, send_t_request1},
+    { BUTTON_ELEMENT, "LIGHTS", NULL, send_t_request2},
+    { BUTTON_ELEMENT, "BACK",   NULL, to_home_menu},
+    { MENU_END,       "",       NULL, NULL},
+  };
+
+struct MENU_ELEMENT elem_temp[] =
+  {
+    {BUTTON_ELEMENT, "Ambient",  NULL, send_t_request1},
+    {BUTTON_ELEMENT, "Top",      NULL, send_t_request2},
+    {BUTTON_ELEMENT, "Cupboard", NULL, send_t_request3},
+    {BUTTON_ELEMENT, "BACK",     NULL, to_home_menu},
+    {MENU_END,       "",         NULL, NULL},
+  };
+
+struct MENU_ELEMENT elem1[] =
+  {
+    {BUTTON_ELEMENT, "UP",        NULL, send_hb_up_request},
+    {BUTTON_ELEMENT, "DOWN",      NULL, send_hb_down_request},
+    {BUTTON_ELEMENT, "Stat",      NULL, send_hb_status_request},
+    {BUTTON_ELEMENT, "BCK",       NULL, to_home_menu},
+    {BUTTON_ELEMENT, "HON",       NULL, send_hb_hol_on},
+    {BUTTON_ELEMENT, "HOFF",      NULL, send_hb_hol_off},
+    {MENU_END,       "button",    NULL, NULL},
+  };
+
+struct MENU_ELEMENT home_menu[] =
+   {
+     {SUB_MENU,       "Files",   (void *)&(elem_gar[0]),  NULL},
+     {SUB_MENU,       "Clear",   (void *)&(elem1[0]),     NULL},
+     {SUB_MENU,       "Send",    (void *)&(elem_temp[0]), NULL},
+     {SUB_MENU,       "Display", (void *)&(elem_temp[0]), NULL},
+     {MENU_END,       "",       NULL,                    NULL},
+  };
+
+void draw_menu(struct MENU_ELEMENT *e)
+{
+  int i=0;
+
+  // Clear screen
+  Oled.clearDisplay();
+
+  while( e->type != MENU_END )
+    {
+      switch(e->type)
+	{
+	case BUTTON_ELEMENT:
+	  Oled.printString(e->text, 0, i);
+	  break;
+
+	case SUB_MENU:
+	  Oled.printString(e->text, 0, i);
+	  break;
+	}
+      e++;
+      i++;
+    }
+}
+
+void run_menu()
+{
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("\nMicrotan 65 Cassette Interface");
+
+  pinMode(micPin,     INPUT);
+  pinMode(switchPin,  INPUT); 
+  pinMode(statPin,    OUTPUT); 
+  pinMode(dataPin,    OUTPUT);
+
+  delay(700);
+
+  Oled.init();  //initialze OLED display
+  //Oled.wideFont = true;
+  //Oled.chrSpace=3;
+  //Oled.drawLine(3, 0xe0);
+
+  //Oled.printString("Hello",0,0); 
+  //Oled.printInt(F_CPU/1000000,0,5); 
+  //Oled.printString("MHz",0,6);
+
+  Oled.wideFont = false;
+  Oled.chrSpace=1;
+  
+  Oled.printString("Microtan 65", 0, 0);
+  Oled.printString("Cassette Interface",0,1); 
+  delay(1000);
+  
+  // Oled.clearDisplay();
+  //Oled.printBigNumber("-31",6,4);
+  //Oled.printBigNumber("9",12,0);
+  
+//  delay(1000);
+//  Oled.printBigNumber("8",9,4); 
+//  Oled.printBigNumber("5",12,4);
+  //delay(1000);
+  //Oled.printBigNumber("   ", 6,4);  // clear those positions
+  //Oled.printBigNumber(62, 6,4); 
+  //Oled.setPowerOff();
+
+
+  
+  attachInterrupt(digitalPinToInterrupt(micPin), lowISR, FALLING);
+      
+  pinMode(LED_BUILTIN, OUTPUT);
+  
+  if (!SD.begin(53)) {
+    Serial.println("SD Card initialisation failed!");
+    Oled.printString("SD Fail", 0, 3);
+  }
+  else
+    {
+      Serial.println("SD card initialised.");
+      Oled.printString("SD OK", 0, 3);
+    }
+
+  delay(2000);
+  
+  current_menu = &(home_menu[0]);
+  last_menu = &(home_menu[0]);
+  the_home_menu = last_menu;
+
+  to_home_menu(NULL);
+}
+
 void loop()
 {
 
 
   run_monitor();
-  
+  run_menu();  
   
   if( digitalRead(switchPin),0 )
     {
