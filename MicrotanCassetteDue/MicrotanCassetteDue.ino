@@ -30,6 +30,9 @@ const int earPin = 44;
 const int switchPin = 5;
 const int MAX_BYTES = 20000;
 const int chipSelect = 53;
+const int button1Pin = 46;
+const int button2Pin = 47;
+const int button3Pin = 48;
 
 #endif
 
@@ -41,8 +44,30 @@ const int earPin = 3;
 const int switchPin = 5;
 const int MAX_BYTES = 5000;
 const int chipSelect = 53;
+const int button1Pin = 46;
+const int button2Pin = 47;
+const int button3Pin = 48;
 #endif
 
+typedef unsigned char BYTE;
+
+typedef void (*FPTR)();
+typedef void (*CMD_FPTR)(String cmd);
+
+#define NUM_BUTTONS 3
+#define MAX_BUT_COUNT 10
+
+int but_pins[NUM_BUTTONS] = {button1Pin, button2Pin, button3Pin};
+
+typedef struct _BUTTON
+{
+  int     count;
+  boolean pressed;
+  boolean last_pressed;   // For edge detection
+  FPTR    event_fn;
+} BUTTON;
+
+BUTTON buttons[NUM_BUTTONS];
 
 #define IF_2400 if(delta<500)
 #define IF_1200 if(delta>=500)
@@ -69,10 +94,6 @@ volatile int state = 0;
 volatile int data_bit = 2;
 volatile int got_bit = 0;
 
-typedef unsigned char BYTE;
-
-typedef void (*FPTR)();
-typedef void (*CMD_FPTR)(String cmd);
 
 enum
   {
@@ -1001,17 +1022,92 @@ struct MENU_ELEMENT
 struct MENU_ELEMENT *current_menu;
 struct MENU_ELEMENT *last_menu;
 struct MENU_ELEMENT *the_home_menu;
+unsigned int menu_selection = 0;
+unsigned int menu_size = 0;
 
 void to_back_menu(struct MENU_ELEMENT *e)
 {
   current_menu = last_menu;
-  draw_menu(current_menu);
+  draw_menu(current_menu, true);
 }
 
 void to_home_menu(struct MENU_ELEMENT *e)
 {
   current_menu = the_home_menu;
-  draw_menu(current_menu);
+  draw_menu(current_menu, true);
+}
+
+void button_clear(MENU_ELEMENT *e)
+{
+  bytecount = -1;
+}
+
+#define COLUMNS 4
+
+void button_display(MENU_ELEMENT *e)
+{
+  int i;
+  char ascii[17];
+  char c[2];
+  
+  int ascii_i = 0;
+
+  Oled.clearDisplay();
+  
+  Oled.printString("Byte Count:", 0,1);
+  Oled.printInt(bytecount, 12, 1);
+
+  for(i=0; (i<bytecount) && (i<16); i++)
+    {
+      if( (i%COLUMNS)==0 )
+	{
+	  Oled.printString(ascii, 14, i/COLUMNS);
+	  ascii_i = 0;
+	  
+	  Serial.println("");
+	  if( i < 0x10)
+	    {
+	      Serial.print("0");
+	    }
+	  Serial.print(i, HEX);
+	  Serial.print(":");
+	}
+
+      if( stored_bytes[i] < 0x10 )
+	{
+	  Serial.print("0");
+	}
+      
+      Serial.print(stored_bytes[i], HEX);
+      Serial.print(" ");
+
+      if( isprint(stored_bytes[i]) )
+	{
+	  sprintf(c, "%c", stored_bytes[i]);
+	}
+	else
+	  {
+	    c[0] ='.';
+	  }
+      ascii[ascii_i++] = c[0];
+    }
+
+  Serial.print(ascii);
+  Serial.print(" ");
+  Serial.println("");
+}
+
+
+void button_send(MENU_ELEMENT *e)
+{
+  Oled.clearDisplay();
+  Oled.printString("Sending...", 0, 1);
+  delay(1000);
+  send_databytes();
+  Oled.printString("Done", 0, 2);
+  delay(2000);
+
+  draw_menu(current_menu, true);
 }
 
 void send_t_request1(struct MENU_ELEMENT *e)
@@ -1077,39 +1173,159 @@ struct MENU_ELEMENT elem1[] =
 
 struct MENU_ELEMENT home_menu[] =
    {
-     {SUB_MENU,       "Files",   (void *)&(elem_gar[0]),  NULL},
-     {SUB_MENU,       "Clear",   (void *)&(elem1[0]),     NULL},
-     {SUB_MENU,       "Send",    (void *)&(elem_temp[0]), NULL},
+     {SUB_MENU,       "Files",    (void *)&(elem_gar[0]),  NULL},
+     {BUTTON_ELEMENT, "Clear",                      NULL, button_clear},
+     {BUTTON_ELEMENT, "Send",                       NULL, button_send},
      {SUB_MENU,       "Display", (void *)&(elem_temp[0]), NULL},
      {MENU_END,       "",       NULL,                    NULL},
   };
 
-void draw_menu(struct MENU_ELEMENT *e)
+void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 {
-  int i=0;
-
+  int i = 0;
+  char curs = ' ';
+  
   // Clear screen
-  Oled.clearDisplay();
-
+  if(clear)
+    {
+      Oled.clearDisplay();
+    }
+  
   while( e->type != MENU_END )
     {
+      if( i == menu_selection )
+	{
+	  curs = '>';	  
+	}
+      else
+	{
+	  curs = ' ';
+	}
+      
       switch(e->type)
 	{
 	case BUTTON_ELEMENT:
-	  Oled.printString(e->text, 0, i);
+	  Oled.setCursorXY(0, i);
+	  Oled.printChar(curs);
+	  Oled.printString(e->text, 1, i);
 	  break;
 
 	case SUB_MENU:
-	  Oled.printString(e->text, 0, i);
+	  Oled.setCursorXY(0, i);
+	  Oled.printChar(curs);
+	  Oled.printString(e->text, 1, i);
 	  break;
 	}
       e++;
       i++;
     }
+  menu_size = i;
 }
 
+// Null button event function
+void but_ev_null()
+{ 
+}
+
+void but_ev_up()
+{
+  menu_selection = (menu_selection - 1) % menu_size;
+  draw_menu(current_menu, false);
+}
+
+void but_ev_down()
+{
+
+  menu_selection = (menu_selection + 1) % menu_size;
+  draw_menu(current_menu, false);
+}
+
+void but_ev_select()
+{
+  struct MENU_ELEMENT *e;
+  int i = 0;
+  
+  // Do what the current selection says to do
+  for(e=current_menu, i=0; (e->type != MENU_END); i++, e++)
+    {
+      if( i == menu_selection )
+	{
+	  switch(e->type)
+	    {
+	    case SUB_MENU:
+	      current_menu = (MENU_ELEMENT *)e->submenu;
+	      draw_menu(current_menu, true);
+	      break;
+	      
+	    default:
+	      // Do action
+	      (e->function)(e);
+	      break;
+	    }
+	}
+	}
+	}
+	  
 void run_menu()
 {
+}
+
+
+void init_buttons()
+{
+  for(int i=0; i<NUM_BUTTONS; i++)
+    {
+      buttons[i].count = 0;
+      buttons[i].pressed = false;
+      buttons[i].last_pressed = false;
+      buttons[i].event_fn = but_ev_null;
+    }
+
+  buttons[0].event_fn = but_ev_up;
+  buttons[1].event_fn = but_ev_down;
+  buttons[2].event_fn = but_ev_select;
+}
+
+void update_buttons()
+{
+  for(int i=0; i<NUM_BUTTONS; i++)
+    {
+      if( digitalRead(but_pins[i]) == LOW )
+	{
+	  Serial.println("But pressed");
+	  if( buttons[i].count < MAX_BUT_COUNT )
+	    {
+	      buttons[i].count++;
+	      if( buttons[i].count == MAX_BUT_COUNT )
+		{
+		  // Just got to MAX_COUNT
+		  buttons[i].pressed = true;
+		}
+	    }
+	}
+      else
+	{
+	  if( buttons[i].count > 0 )
+	    {
+	      buttons[i].count--;
+	      
+	      if( buttons[i].count == 0 )
+		{
+		  // Just got to zero
+		  buttons[i].pressed = false;
+		}
+	    }
+	}
+      
+      // If buton has gone from pressed to not pressed then we treat that as a key event
+      if( (buttons[i].last_pressed == true) && (buttons[i].pressed == false) )
+	{
+	  Serial.println("**EVENT**");
+	  (buttons[i].event_fn)();
+	}
+
+      buttons[i].last_pressed = buttons[i].pressed;
+    }
 }
 
 void setup()
@@ -1122,6 +1338,11 @@ void setup()
   pinMode(statPin,    OUTPUT); 
   pinMode(dataPin,    OUTPUT);
 
+  for(int i=0; i<NUM_BUTTONS;i++)
+    {
+      pinMode(but_pins[i], INPUT);
+    }
+  
   delay(700);
 
   Oled.init();  //initialze OLED display
@@ -1175,12 +1396,14 @@ void setup()
   the_home_menu = last_menu;
 
   to_home_menu(NULL);
+
+  init_buttons();
 }
 
 void loop()
 {
 
-
+  update_buttons();
   run_monitor();
   run_menu();  
   
