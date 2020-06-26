@@ -581,7 +581,7 @@ void send_databytes()
   
   // Send stored data back out
   // Header
-  for(i=0; i<2400*30; i++)
+  for(i=0; i<2400*20; i++)
     {
 #if 0      
       digitalWrite(earPin, LOW);
@@ -643,7 +643,8 @@ void send_databytes()
 	}
     }
   interrupts();
-  
+
+  Serial.println("Sent.");
   pinMode(earPin,     INPUT);
 }
 
@@ -1102,7 +1103,6 @@ void button_send(MENU_ELEMENT *e)
 {
   Oled.clearDisplay();
   Oled.printString("Sending...", 0, 1);
-  delay(1000);
   send_databytes();
   Oled.printString("Done", 0, 2);
   delay(2000);
@@ -1292,7 +1292,6 @@ void update_buttons()
     {
       if( digitalRead(but_pins[i]) == LOW )
 	{
-	  Serial.println("But pressed");
 	  if( buttons[i].count < MAX_BUT_COUNT )
 	    {
 	      buttons[i].count++;
@@ -1320,7 +1319,6 @@ void update_buttons()
       // If buton has gone from pressed to not pressed then we treat that as a key event
       if( (buttons[i].last_pressed == true) && (buttons[i].pressed == false) )
 	{
-	  Serial.println("**EVENT**");
 	  (buttons[i].event_fn)();
 	}
 
