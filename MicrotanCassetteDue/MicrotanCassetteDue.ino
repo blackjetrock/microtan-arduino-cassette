@@ -16,6 +16,7 @@ File myFile;
 // Capture file
 File dumpfile;
 
+
 #define DEBUG_SERIAL 0
 #define DIRECT_WRITE 0
 
@@ -69,8 +70,40 @@ typedef struct _BUTTON
 
 BUTTON buttons[NUM_BUTTONS];
 
+enum ELEMENT_TYPE
+  {
+    BUTTON_ELEMENT = 10,
+    SUB_MENU,
+    MENU_END,
+  };
+
+struct MENU_ELEMENT
+{
+  enum ELEMENT_TYPE type;
+  char *text;
+  void *submenu;
+  void (*function)(struct MENU_ELEMENT *e);
+};
+
+
+struct MENU_ELEMENT *current_menu;
+struct MENU_ELEMENT *last_menu;
+struct MENU_ELEMENT *the_home_menu;
+unsigned int menu_selection = 0;
+unsigned int menu_size = 0;
+
+#define MAX_LISTFILES 7
+#define MAX_NAME 20
+
+MENU_ELEMENT listfiles[MAX_LISTFILES];
+int num_listfiles;
+char names[MAX_LISTFILES][MAX_NAME];
+char selected_file[MAX_NAME+1];
+char current_file[MAX_NAME+1];
+
 #define IF_2400 if(delta<500)
 #define IF_1200 if(delta>=500)
+
 
 void state_got2400()
 {
@@ -360,7 +393,7 @@ void state_chkpar1()
 }
 
 // How many bytes in the buffer. We have a default for testing without a Microtan
-int bytecount = 15;
+int bytecount = 24;
 
 void state_init()
 {
@@ -372,14 +405,11 @@ void state_init()
 
 // Where the received data goes
 
-unsigned char stored_bytes[MAX_BYTES] =
-  {
-    'T', 'E', 'S', 'T', ' ', ' ', '.', 'A',
-    0x0a, 0x10, 0x11, 0x12, 0x13, 0x14
-  };
+char stored_bytes[MAX_BYTES] = "Test data example. 01234567890";
+
 
 // Two versions of this, one that writes data to a buffer that you have to then write to
-// a file, and a second that writes diretly to the SD card
+// a file, and a second that writes directly to the SD card
 
 #if !DIRECT_WRITE
 
@@ -570,6 +600,9 @@ void send_databytes()
   int parity;
  
   Serial.println("Sending...");
+  Oled.clearDisplay();
+  Oled.printString("Sending...", 0,1);
+  
 
   // Make ear pin an output while sending then input at all other times so
   // cassette inputs will still work
@@ -644,8 +677,14 @@ void send_databytes()
     }
   interrupts();
 
-  Serial.println("Sent.");
   pinMode(earPin,     INPUT);
+    
+  Serial.println("Sent.");
+  Oled.printString("Sending...", 0,1);
+  delay(2000);
+  
+  draw_menu(current_menu, true);
+
 }
 
 //
@@ -785,16 +824,22 @@ void cmd_deletefile(String cmd)
   SD.remove(arg);
 }
 
-// read the file with th egiven name into the buffer
-void cmd_readfile(String cmd)
-{
-  String arg;
-  
-  arg = cmd.substring(strlen("read "));
+// read the file with the given name into the buffer
 
-  Serial.print("Reading file '");
-  Serial.print(arg);
-  Serial.println("'");
+void core_read(String arg, boolean oled_nserial)
+{
+  if( oled_nserial )
+    {
+      Oled.clearDisplay();
+      Oled.printString("Reading file ", 0, 0);
+      Oled.printString(arg.c_str(), 0, 1);
+    }
+  else
+    {
+      Serial.print("Reading file '");
+      Serial.print(arg);
+      Serial.println("'");
+    }
   
   myFile = SD.open(arg);
 
@@ -816,21 +861,46 @@ void cmd_readfile(String cmd)
       // close the file:
       myFile.close();
 
-      Serial.print(bytecount);
-      Serial.println(" bytes read.");
+      if ( oled_nserial )
+	{
+	  Oled.printInt(bytecount, 0,4);
+	  Oled.printString(" bytes read.");
+	}
+      else
+	{
+	  Serial.print(bytecount);
+	  Serial.println(" bytes read.");
+	}
     }
   else
     {
       // if the file didn't open, print an error:
-      Serial.print("Error opening ");
-      Serial.println(arg);
+      if( oled_nserial )
+	{
+	  Oled.printString("Error opening", 0, 4);
+	  Oled.printString(arg.c_str(), 0, 5);
+	  
+	}
+      else
+	{
+	  Serial.print("Error opening ");
+	  Serial.println(arg);
+	}
     }
+}
+
+void cmd_readfile(String cmd)
+{
+  String arg;
+  
+  arg = cmd.substring(strlen("read "));
+
+  core_read(arg, false);
 }
 
 void cmd_listfiles(String cmd)
 {
   File dir;
-  int numTabs = 0;
   
   dir = SD.open("/");
 
@@ -880,7 +950,8 @@ void cmd_initsd(String cmd)
 // Deletes any file that exists with the same name so that the resulting
 // file is the same size as the buffer
 
-void cmd_writefile(String cmd)
+
+void core_writefile(boolean oled_nserial)
 {
   char filename[20] = "U___.txt";
   int i;
@@ -896,15 +967,29 @@ void cmd_writefile(String cmd)
 	  (stored_bytes[6]==' ')?'_':stored_bytes[6],
 	  (stored_bytes[7]==' ')?'_':stored_bytes[7]
 	  );
-  
-  Serial.println("");
-  Serial.print("Writing ");
-  Serial.print(bytecount);
-  Serial.print(" bytes to '");
-  Serial.print(filename);
-  Serial.print("'");
-  Serial.println("");
 
+  if( oled_nserial )
+    {
+      Oled.clearDisplay();
+      Oled.printString("", 0,0);
+      Oled.printString("Writing ");
+      Oled.printInt(bytecount);
+      Oled.printString(" bytes to");
+      Oled.printString("'", 0, 1);
+      Oled.printString(filename);
+      Oled.printString("'");
+    }
+  else
+    {
+      Serial.println("");
+      Serial.print("Writing ");
+      Serial.print(bytecount);
+      Serial.print(" bytes to '");
+      Serial.print(filename);
+      Serial.print("'");
+      Serial.println("");
+    }
+  
   // Delete so we have no extra data if the file is currently larger than the buffer
   SD.remove(filename);
   
@@ -920,16 +1005,41 @@ void cmd_writefile(String cmd)
 	}
       
       myFile.close();
-      
-      Serial.print(bytecount);
-      Serial.println(" bytes written");
+
+      if( oled_nserial )
+	{
+	  Oled.setCursorXY(0,3);
+	  Oled.printInt(bytecount);
+	  Oled.printString(" bytes written");
+	}
+      else
+	{
+	  Serial.print(bytecount);
+	  Serial.println(" bytes written");
+	}
     }
   else
     {
-      Serial.println("Could not open file");
+      if(oled_nserial)
+	{
+	  Oled.printString("Could not open file", 0, 5);
+
+	}
+      else
+	{
+	  Serial.println("Could not open file");
+	}
     }
 
+  if( oled_nserial )
+    {
+      delay(2000);
+    }
+}
 
+void cmd_writefile(String cmd)
+{
+  core_writefile(false);
 }
 
 const int NUM_CMDS = 14;
@@ -1005,26 +1115,7 @@ void run_monitor()
 // The switch menu/OLED display system
 
 
-enum ELEMENT_TYPE
-  {
-    BUTTON_ELEMENT = 10,
-    SUB_MENU,
-    MENU_END,
-  };
 
-struct MENU_ELEMENT
-{
-  enum ELEMENT_TYPE type;
-  char *text;
-  void *submenu;
-  void (*function)(struct MENU_ELEMENT *e);
-};
-
-struct MENU_ELEMENT *current_menu;
-struct MENU_ELEMENT *last_menu;
-struct MENU_ELEMENT *the_home_menu;
-unsigned int menu_selection = 0;
-unsigned int menu_size = 0;
 
 void to_back_menu(struct MENU_ELEMENT *e)
 {
@@ -1043,59 +1134,223 @@ void button_clear(MENU_ELEMENT *e)
   bytecount = -1;
 }
 
+void button_write(MENU_ELEMENT *e)
+{
+  core_writefile(true);
+}
+
+
+// The button function puts up to the first 7 files on screen then set sup a button handler
+// which will display subsequent pages.
+// We use th emenu structures to display the names and allow selection
+
+// File selected
+void button_select_file(MENU_ELEMENT *e)
+{
+  strcpy(selected_file, e->text);
+
+  // Back a menu
+  to_back_menu(e);
+  
+}
+
+
+// Allow a file to be selected. The file name will be stored for a later 'read' command.
+
+int file_offset = 0;
+#define FILE_PAGE 7
+
+void but_ev_file_up()
+{
+  if( file_offset > FILE_PAGE )
+    {
+      file_offset -= FILE_PAGE;
+    }
+  else
+    {
+      file_offset = 0;
+    }
+  
+  button_list(NULL);
+}
+
+void but_ev_file_down()
+{
+  file_offset += FILE_PAGE;
+  
+  button_list(NULL);
+}
+
+// Back to main menu
+void but_ev_file_exit()
+{
+  strcpy(current_file, listfiles[menu_selection].text);
+  file_offset = 0;
+  draw_menu(current_menu, true);
+
+  buttons[0].event_fn = but_ev_up;
+  buttons[1].event_fn = but_ev_down;
+  buttons[2].event_fn = but_ev_select;
+}
+
+void button_list(MENU_ELEMENT *e)
+{
+  File dir;
+  int file_n = 0;
+  num_listfiles = 0;
+  int i;
+  
+  dir = SD.open("/");
+
+  // return to the first file in the directory
+  dir.rewindDirectory();
+  
+  while (num_listfiles < MAX_LISTFILES) {
+
+    File entry =  dir.openNextFile();
+
+    if (! entry) {
+      // no more files
+      // terminate menu
+      listfiles[num_listfiles].text = "";
+      listfiles[num_listfiles].type = MENU_END;
+      listfiles[num_listfiles].submenu = NULL;
+      listfiles[num_listfiles].function = button_select_file;
+      break;
+    }
+
+    // we also don't want to display anything before the offset
+    if( file_n < file_offset )
+      {
+	file_n++;
+	continue;
+      }
+    
+    // We don't allow directories
+    if (entry.isDirectory())
+      {
+      }
+    else
+      {
+	// Create a new menu element
+	strncpy(&(names[num_listfiles][0]), entry.name(), MAX_NAME);
+	//	Oled.printString(&(names[num_listfiles][0]));
+	listfiles[num_listfiles].text = &(names[num_listfiles][0]);
+	listfiles[num_listfiles].type = BUTTON_ELEMENT;
+	listfiles[num_listfiles].submenu = NULL;
+	listfiles[num_listfiles].function = button_select_file;
+	num_listfiles++;
+      }
+    entry.close();
+
+    // Next file
+    file_n++;
+  }
+
+  dir.close();
+
+  // terminate menu
+  listfiles[num_listfiles].text = "";
+  listfiles[num_listfiles].type = MENU_END;
+  listfiles[num_listfiles].submenu = NULL;
+  listfiles[num_listfiles].function = button_select_file;
+  
+  // Set up menu of file nmes
+  current_menu = &(listfiles[0]);
+  draw_menu(current_menu, true);
+
+  // Button actions modified
+  buttons[0].event_fn = but_ev_file_up;
+  buttons[1].event_fn = but_ev_file_down;
+  buttons[2].event_fn = but_ev_file_exit;
+
+}
+
+
 #define COLUMNS 4
+#define PAGE_LENGTH 24
+
+// Display the buffer
+
+int display_offset = 0;
+
+void but_page_up()
+{
+  if( display_offset > PAGE_LENGTH )
+    {
+      display_offset -= PAGE_LENGTH;
+    }
+  else
+    {
+      display_offset = 0;
+    }
+  button_display(NULL);
+}
+
+void but_page_down()
+{
+  display_offset += PAGE_LENGTH;
+  
+  if( display_offset >= bytecount )
+    {
+      display_offset = bytecount-PAGE_LENGTH;
+    }
+
+  if( display_offset < 0 )
+    {
+      display_offset = 0;
+    }
+  
+  button_display(NULL);
+}
+
+void but_page_exit()
+{
+  display_offset = 0;
+  draw_menu(current_menu, true);
+
+  buttons[0].event_fn = but_ev_up;
+  buttons[1].event_fn = but_ev_down;
+  buttons[2].event_fn = but_ev_select;
+
+}
 
 void button_display(MENU_ELEMENT *e)
 {
   int i;
   char ascii[17];
-  char c[2];
+  char c[5];
   
   int ascii_i = 0;
 
   Oled.clearDisplay();
   
-  Oled.printString("Byte Count:", 0,1);
-  Oled.printInt(bytecount, 12, 1);
+  //  Oled.printString("Byte Count:", 0,1);
+  //Oled.printInt(bytecount, 12, 1);
 
-  for(i=0; (i<bytecount) && (i<16); i++)
+  for(i=0; (i<bytecount) && (i<PAGE_LENGTH); i++)
     {
-      if( (i%COLUMNS)==0 )
-	{
-	  Oled.printString(ascii, 14, i/COLUMNS);
-	  ascii_i = 0;
-	  
-	  Serial.println("");
-	  if( i < 0x10)
-	    {
-	      Serial.print("0");
-	    }
-	  Serial.print(i, HEX);
-	  Serial.print(":");
-	}
-
-      if( stored_bytes[i] < 0x10 )
-	{
-	  Serial.print("0");
-	}
-      
-      Serial.print(stored_bytes[i], HEX);
-      Serial.print(" ");
-
       if( isprint(stored_bytes[i]) )
 	{
-	  sprintf(c, "%c", stored_bytes[i]);
+	  sprintf(ascii, "%c", stored_bytes[i+display_offset]);
 	}
-	else
-	  {
-	    c[0] ='.';
-	  }
-      ascii[ascii_i++] = c[0];
+      else
+	{
+	  sprintf(ascii, ".");
+	}
+      
+      sprintf(c,     "%02X",  stored_bytes[i+display_offset]);
+      
+      Oled.printString(ascii, 9+(i%COLUMNS)*1, i/COLUMNS+1);
+      Oled.printString(c    , 0+(i%COLUMNS)*2, i/COLUMNS+1);
+
     }
 
-  Serial.print(ascii);
-  Serial.print(" ");
-  Serial.println("");
+  // Drop into page up and down and exit buttoin handlers
+  buttons[0].event_fn = but_page_up;
+  buttons[1].event_fn = but_page_down;
+  buttons[2].event_fn = but_page_exit;
+  
 }
 
 
@@ -1108,6 +1363,13 @@ void button_send(MENU_ELEMENT *e)
   delay(2000);
 
   draw_menu(current_menu, true);
+}
+
+/* read the current file from SD card */
+
+void button_read(MENU_ELEMENT *e)
+{
+
 }
 
 void send_t_request1(struct MENU_ELEMENT *e)
@@ -1173,10 +1435,12 @@ struct MENU_ELEMENT elem1[] =
 
 struct MENU_ELEMENT home_menu[] =
    {
-     {SUB_MENU,       "Files",    (void *)&(elem_gar[0]),  NULL},
+     {BUTTON_ELEMENT, "List",                       NULL, button_list},
      {BUTTON_ELEMENT, "Clear",                      NULL, button_clear},
      {BUTTON_ELEMENT, "Send",                       NULL, button_send},
-     {SUB_MENU,       "Display", (void *)&(elem_temp[0]), NULL},
+     {BUTTON_ELEMENT, "Write",                      NULL, button_write},
+     {BUTTON_ELEMENT, "Display",                    NULL, button_display},
+     {BUTTON_ELEMENT, "Read",                       NULL, button_read},
      {MENU_END,       "",       NULL,                    NULL},
   };
 
@@ -1328,6 +1592,8 @@ void update_buttons()
 
 void setup()
 {
+  bytecount = strlen(&(stored_bytes[0]));
+  
   Serial.begin(115200);
   Serial.println("\nMicrotan 65 Cassette Interface");
 
