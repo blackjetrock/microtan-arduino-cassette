@@ -614,7 +614,7 @@ void send_databytes()
   
   // Send stored data back out
   // Header
-  for(i=0; i<2400*20; i++)
+  for(i=0; i<2400*5; i++)
     {
 #if 0      
       digitalWrite(earPin, LOW);
@@ -729,14 +729,21 @@ void cmd_modify(String cmd)
     }
 }
 
+#define DISPLAY_COLS 16
+
+// Displays the file data, with offset and address (from start address stored in file data)
 
 void cmd_display(String cmd)
 {
   int i;
-  char ascii[17];
+  int address = stored_bytes[10]*256+stored_bytes[11]-12;
+  
+  char ascii[DISPLAY_COLS+2];
   char c[2];
+  char line[50];
   
   int ascii_i = 0;
+  ascii[0] ='\0';
   
   Serial.print("Byte Count:");
   Serial.print(bytecount);
@@ -745,29 +752,16 @@ void cmd_display(String cmd)
 
   for(i=0; i<bytecount; i++)
     {
-      if( (i%16)==0 )
+      if( (i%DISPLAY_COLS)==0 )
 	{
-	  Serial.print(" ");
-	  Serial.print(ascii);
+	  sprintf(line, "%s\n%04X %04X:", ascii, i, address); 	  
+	  Serial.print(line);
 	  ascii_i = 0;
-	  
-	  Serial.println("");
-	  if( i < 0x10)
-	    {
-	      Serial.print("0");
-	    }
-	  Serial.print(i, HEX);
-	  Serial.print(":");
 	}
 
-      if( stored_bytes[i] < 0x10 )
-	{
-	  Serial.print("0");
-	}
+      sprintf(line, "%02X ", stored_bytes[i]);
+      Serial.print(line);
       
-      Serial.print(stored_bytes[i], HEX);
-      Serial.print(" ");
-
       if( isprint(stored_bytes[i]) )
 	{
 	  sprintf(c, "%c", stored_bytes[i]);
@@ -777,8 +771,19 @@ void cmd_display(String cmd)
 	    c[0] ='.';
 	  }
       ascii[ascii_i++] = c[0];
+      ascii[ascii_i] = '\0';
+      
+      address++;
     }
 
+  ascii[ascii_i++] = '\0';
+
+  // Pad to the ascii position
+  for(i=ascii_i-1; i<DISPLAY_COLS; i++)
+    {
+      Serial.print("   ");
+    }
+  
   Serial.print(ascii);
   Serial.print(" ");
   Serial.println("");
@@ -865,6 +870,7 @@ void core_read(String arg, boolean oled_nserial)
 	{
 	  Oled.printInt(bytecount, 0,4);
 	  Oled.printString(" bytes read.");
+	  delay(3000);
 	}
       else
 	{
@@ -1132,17 +1138,25 @@ void to_home_menu(struct MENU_ELEMENT *e)
 void button_clear(MENU_ELEMENT *e)
 {
   bytecount = -1;
+
+  Oled.clearDisplay();
+  Oled.printString("Buffer Cleared", 0,1);
+  delay(3000);
+  draw_menu(current_menu, true);
 }
 
 void button_write(MENU_ELEMENT *e)
 {
   core_writefile(true);
+
+  delay(3000);
+  draw_menu(current_menu, true);
 }
 
 
 // The button function puts up to the first 7 files on screen then set sup a button handler
 // which will display subsequent pages.
-// We use th emenu structures to display the names and allow selection
+// We use the menu structures to display the names and allow selection
 
 // File selected
 void button_select_file(MENU_ELEMENT *e)
@@ -1158,35 +1172,78 @@ void button_select_file(MENU_ELEMENT *e)
 // Allow a file to be selected. The file name will be stored for a later 'read' command.
 
 int file_offset = 0;
+
 #define FILE_PAGE 7
 
 void but_ev_file_up()
 {
-  if( file_offset > FILE_PAGE )
+  Serial.print("Before-menu_selection: ");
+  Serial.print(menu_selection);
+  Serial.print("file_offset: ");
+  Serial.println(file_offset);
+
+  if( menu_selection == 0 )
     {
-      file_offset -= FILE_PAGE;
+      if( file_offset == 0 )
+	{
+	  // Don't move
+	}
+      else
+	{
+	  // Move files back one
+	  file_offset--;
+	}
     }
   else
     {
-      file_offset = 0;
+      // Move ursor up
+      menu_selection--;
     }
-  
+
+  Serial.print("Before-menu_selection: ");
+  Serial.print(menu_selection);
+  Serial.print("file_offset: ");
+  Serial.println(file_offset);
+
   button_list(NULL);
 }
 
 void but_ev_file_down()
 {
-  file_offset += FILE_PAGE;
+  Serial.print("Before-menu_selection: ");
+  Serial.print(menu_selection);
+  Serial.print("file_offset: ");
+  Serial.println(file_offset);
   
+  menu_selection++;
+  if( menu_selection == menu_size )
+    {
+      file_offset++;
+      menu_selection--;
+    }
+
+  Serial.print("Before-menu_selection: ");
+  Serial.print(menu_selection);
+  Serial.print("file_offset: ");
+  Serial.println(file_offset);
+
   button_list(NULL);
 }
 
-// Back to main menu
-void but_ev_file_exit()
+// Store file name and exit menu
+// File can be read later
+
+void but_ev_file_select()
 {
   strcpy(current_file, listfiles[menu_selection].text);
   file_offset = 0;
-  draw_menu(current_menu, true);
+
+  Oled.clearDisplay();
+  Oled.printString("Selected file", 0, 0);
+  Oled.printString(current_file, 0, 2);
+  delay(3000);
+  
+  to_home_menu(NULL);
 
   buttons[0].event_fn = but_ev_up;
   buttons[1].event_fn = but_ev_down;
@@ -1199,7 +1256,7 @@ void button_list(MENU_ELEMENT *e)
   int file_n = 0;
   num_listfiles = 0;
   int i;
-  
+
   dir = SD.open("/");
 
   // return to the first file in the directory
@@ -1219,32 +1276,38 @@ void button_list(MENU_ELEMENT *e)
       break;
     }
 
-    // we also don't want to display anything before the offset
-    if( file_n < file_offset )
-      {
-	file_n++;
-	continue;
-      }
     
-    // We don't allow directories
+    // We don't allow directories and don't ount them
     if (entry.isDirectory())
       {
       }
     else
       {
+	Serial.print("BList-file_n:");
+	Serial.print(file_n);
+	Serial.print(entry.name());
+	Serial.print("  num_listfiles:");
+	Serial.println(num_listfiles);
+
 	// Create a new menu element
-	strncpy(&(names[num_listfiles][0]), entry.name(), MAX_NAME);
-	//	Oled.printString(&(names[num_listfiles][0]));
-	listfiles[num_listfiles].text = &(names[num_listfiles][0]);
-	listfiles[num_listfiles].type = BUTTON_ELEMENT;
-	listfiles[num_listfiles].submenu = NULL;
-	listfiles[num_listfiles].function = button_select_file;
-	num_listfiles++;
+	// we also don't want to display anything before the offset
+	if( file_n >= file_offset )
+	  {
+	    strncpy(&(names[num_listfiles][0]), entry.name(), MAX_NAME);
+	    //	Oled.printString(&(names[num_listfiles][0]));
+	    listfiles[num_listfiles].text = &(names[num_listfiles][0]);
+	    listfiles[num_listfiles].type = BUTTON_ELEMENT;
+	    listfiles[num_listfiles].submenu = NULL;
+	    listfiles[num_listfiles].function = button_select_file;
+	    
+	    num_listfiles++;
+	  }
+	// Next file
+	file_n++;
+
       }
     entry.close();
-
-    // Next file
-    file_n++;
+    
   }
 
   dir.close();
@@ -1255,14 +1318,14 @@ void button_list(MENU_ELEMENT *e)
   listfiles[num_listfiles].submenu = NULL;
   listfiles[num_listfiles].function = button_select_file;
   
-  // Set up menu of file nmes
+  // Set up menu of file names
   current_menu = &(listfiles[0]);
-  draw_menu(current_menu, true);
+  draw_menu(current_menu, false);
 
   // Button actions modified
   buttons[0].event_fn = but_ev_file_up;
   buttons[1].event_fn = but_ev_file_down;
-  buttons[2].event_fn = but_ev_file_exit;
+  buttons[2].event_fn = but_ev_file_select;
 
 }
 
@@ -1356,12 +1419,7 @@ void button_display(MENU_ELEMENT *e)
 
 void button_send(MENU_ELEMENT *e)
 {
-  Oled.clearDisplay();
-  Oled.printString("Sending...", 0, 1);
   send_databytes();
-  Oled.printString("Done", 0, 2);
-  delay(2000);
-
   draw_menu(current_menu, true);
 }
 
@@ -1369,69 +1427,10 @@ void button_send(MENU_ELEMENT *e)
 
 void button_read(MENU_ELEMENT *e)
 {
+  core_read(current_file, true);
 
+  draw_menu(current_menu, true);
 }
-
-void send_t_request1(struct MENU_ELEMENT *e)
-{
-}
-
-void send_t_request2(struct MENU_ELEMENT *e)
-{
-}
-
-void send_t_request3(struct MENU_ELEMENT *e)
-{
-}
-
-void send_hb_status_request(struct MENU_ELEMENT *e)
-{
-}
-
-
-void send_hb_up_request(struct MENU_ELEMENT *e)
-{
-}
-
-void send_hb_down_request(struct MENU_ELEMENT *e)
-{
-}
-
-void send_hb_hol_on(struct MENU_ELEMENT *e)
-{
-}
-void send_hb_hol_off(struct MENU_ELEMENT *e)
-{
-}
-
-// Garage controller
-struct MENU_ELEMENT elem_gar[] =
-  {
-    { BUTTON_ELEMENT, "STAT",   NULL, send_t_request1},
-    { BUTTON_ELEMENT, "LIGHTS", NULL, send_t_request2},
-    { BUTTON_ELEMENT, "BACK",   NULL, to_home_menu},
-    { MENU_END,       "",       NULL, NULL},
-  };
-
-struct MENU_ELEMENT elem_temp[] =
-  {
-    {BUTTON_ELEMENT, "Ambient",  NULL, send_t_request1},
-    {BUTTON_ELEMENT, "Top",      NULL, send_t_request2},
-    {BUTTON_ELEMENT, "Cupboard", NULL, send_t_request3},
-    {BUTTON_ELEMENT, "BACK",     NULL, to_home_menu},
-    {MENU_END,       "",         NULL, NULL},
-  };
-
-struct MENU_ELEMENT elem1[] =
-  {
-    {BUTTON_ELEMENT, "UP",        NULL, send_hb_up_request},
-    {BUTTON_ELEMENT, "DOWN",      NULL, send_hb_down_request},
-    {BUTTON_ELEMENT, "Stat",      NULL, send_hb_status_request},
-    {BUTTON_ELEMENT, "BCK",       NULL, to_home_menu},
-    {BUTTON_ELEMENT, "HON",       NULL, send_hb_hol_on},
-    {BUTTON_ELEMENT, "HOFF",      NULL, send_hb_hol_off},
-    {MENU_END,       "button",    NULL, NULL},
-  };
 
 struct MENU_ELEMENT home_menu[] =
    {
@@ -1443,6 +1442,8 @@ struct MENU_ELEMENT home_menu[] =
      {BUTTON_ELEMENT, "Read",                       NULL, button_read},
      {MENU_END,       "",       NULL,                    NULL},
   };
+
+// Clear flag indicates whether we redraw the menu text and clear the screen. Or not.
 
 void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 {
@@ -1471,13 +1472,19 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 	case BUTTON_ELEMENT:
 	  Oled.setCursorXY(0, i);
 	  Oled.printChar(curs);
-	  Oled.printString(e->text, 1, i);
+	  if( clear,1 )
+	    {
+	      Oled.printString(e->text, 1, i);
+	    }
 	  break;
 
 	case SUB_MENU:
 	  Oled.setCursorXY(0, i);
 	  Oled.printChar(curs);
-	  Oled.printString(e->text, 1, i);
+	  if ( clear,1 )
+	    {
+	      Oled.printString(e->text, 1, i);
+	    }
 	  break;
 	}
       e++;
@@ -1493,7 +1500,15 @@ void but_ev_null()
 
 void but_ev_up()
 {
-  menu_selection = (menu_selection - 1) % menu_size;
+  if( menu_selection == 0 )
+    {
+      menu_selection = menu_size - 1;
+    }
+  else
+    {
+      menu_selection = (menu_selection - 1) % menu_size;
+    }
+  
   draw_menu(current_menu, false);
 }
 
@@ -1501,6 +1516,7 @@ void but_ev_down()
 {
 
   menu_selection = (menu_selection + 1) % menu_size;
+
   draw_menu(current_menu, false);
 }
 
@@ -1530,10 +1546,6 @@ void but_ev_select()
 	}
 	}
 	  
-void run_menu()
-{
-}
-
 
 void init_buttons()
 {
@@ -1669,7 +1681,6 @@ void loop()
 
   update_buttons();
   run_monitor();
-  run_menu();  
   
   if( digitalRead(switchPin),0 )
     {
@@ -1708,6 +1719,17 @@ void loop()
 	  // Execute entry function
 	  (*byte_state_table[byte_state].entry_function)();
 	}
+
+      #if 0
+      if( byte_state != BINIT )
+	{
+	  Oled.printString("Rx", 12,7);
+	}
+      else
+	{
+	  Oled.printString("  ", 12,7);
+	}
+      #endif
       
 #if 0
       Serial.print(":");
