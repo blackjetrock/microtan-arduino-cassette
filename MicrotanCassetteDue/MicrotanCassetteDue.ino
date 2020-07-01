@@ -56,7 +56,7 @@ typedef void (*FPTR)();
 typedef void (*CMD_FPTR)(String cmd);
 
 #define NUM_BUTTONS 3
-#define MAX_BUT_COUNT 10
+#define MAX_BUT_COUNT 4
 
 int but_pins[NUM_BUTTONS] = {button1Pin, button2Pin, button3Pin};
 
@@ -1119,18 +1119,16 @@ void run_monitor()
 }
 
 // The switch menu/OLED display system
-
-
-
-
 void to_back_menu(struct MENU_ELEMENT *e)
 {
+  menu_selection = 0;
   current_menu = last_menu;
   draw_menu(current_menu, true);
 }
 
 void to_home_menu(struct MENU_ELEMENT *e)
 {
+  menu_selection = 0;
   current_menu = the_home_menu;
   draw_menu(current_menu, true);
 }
@@ -1214,18 +1212,39 @@ void but_ev_file_down()
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
-  
+
+  // Move cursor down one entry
   menu_selection++;
+  
+  // Are we off the end of the menu?
   if( menu_selection == menu_size )
     {
-      file_offset++;
-      menu_selection--;
+      // 
+      if( menu_selection >= MAX_LISTFILES,1 )
+	{
+	  menu_selection--;
+
+	  // If the screen is full then we haven't reached the end of the file list
+	  // so move the list up one
+	  if( menu_size == MAX_LISTFILES )
+	    {
+	      file_offset++;
+	    }
+	}
     }
 
+  // We need to make sure cursor is on menu
+  if( menu_selection >= menu_size )
+    {
+      menu_selection = menu_size - 1;
+    }
+  
   Serial.print("Before-menu_selection: ");
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
+  Serial.print("menu_size: ");
+  Serial.println(menu_size);
 
   button_list(NULL);
 }
@@ -1242,9 +1261,10 @@ void but_ev_file_select()
   Oled.printString("Selected file", 0, 0);
   Oled.printString(current_file, 0, 2);
   delay(3000);
-  
-  to_home_menu(NULL);
 
+  menu_selection = 0;
+  to_home_menu(NULL);
+  
   buttons[0].event_fn = but_ev_up;
   buttons[1].event_fn = but_ev_down;
   buttons[2].event_fn = but_ev_select;
@@ -1449,6 +1469,7 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 {
   int i = 0;
   char curs = ' ';
+  char etext[20];
   
   // Clear screen
   if(clear)
@@ -1458,6 +1479,7 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
   
   while( e->type != MENU_END )
     {
+      sprintf(etext, "%13s", e->text);
       if( i == menu_selection )
 	{
 	  curs = '>';	  
@@ -1474,7 +1496,7 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 	  Oled.printChar(curs);
 	  if( clear,1 )
 	    {
-	      Oled.printString(e->text, 1, i);
+	      Oled.printString(etext, 1, i);
 	    }
 	  break;
 
@@ -1483,14 +1505,29 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 	  Oled.printChar(curs);
 	  if ( clear,1 )
 	    {
-	      Oled.printString(e->text, 1, i);
+	      Oled.printString(etext, 1, i);
 	    }
 	  break;
 	}
       e++;
       i++;
     }
+  
   menu_size = i;
+  Serial.print("menu_size:");
+  Serial.println(menu_size);
+
+  // Blank the other entries
+  //make sure menu_selection isn't outside the menu
+  if( menu_selection >= menu_size )
+    {
+      menu_selection = menu_size-1;
+    }
+
+  for(; i<MAX_LISTFILES; i++)
+    {
+      Oled.printString("               ", 0, i);
+    }
 }
 
 // Null button event function
@@ -1543,9 +1580,9 @@ void but_ev_select()
 	      break;
 	    }
 	}
-	}
-	}
-	  
+    }
+}
+
 
 void init_buttons()
 {
