@@ -3,7 +3,7 @@ EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 1 1
+Sheet 1 2
 Title ""
 Date ""
 Rev ""
@@ -73,7 +73,7 @@ U 1 1 5EF042C9
 P 4000 6000
 F 0 "R3" H 4070 6046 50  0000 L CNN
 F 1 "1k" H 4070 5955 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 3930 6000 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 3930 6000 50  0001 C CNN
 F 3 "~" H 4000 6000 50  0001 C CNN
 	1    4000 6000
 	1    0    0    -1  
@@ -84,7 +84,7 @@ U 1 1 5EF05072
 P 4000 4250
 F 0 "R2" H 4070 4296 50  0000 L CNN
 F 1 "1k" H 4070 4205 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 3930 4250 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 3930 4250 50  0001 C CNN
 F 3 "~" H 4000 4250 50  0001 C CNN
 	1    4000 4250
 	1    0    0    -1  
@@ -95,7 +95,7 @@ U 1 1 5EF05716
 P 4600 4700
 F 0 "R4" V 4807 4700 50  0000 C CNN
 F 1 "1k" V 4716 4700 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 4530 4700 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 4530 4700 50  0001 C CNN
 F 3 "~" H 4600 4700 50  0001 C CNN
 	1    4600 4700
 	0    -1   -1   0   
@@ -106,7 +106,7 @@ U 1 1 5EF059DA
 P 3400 6400
 F 0 "R1" V 3607 6400 50  0000 C CNN
 F 1 "1k" V 3516 6400 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 3330 6400 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 3330 6400 50  0001 C CNN
 F 3 "~" H 3400 6400 50  0001 C CNN
 	1    3400 6400
 	0    -1   -1   0   
@@ -237,7 +237,7 @@ Wire Wire Line
 Wire Wire Line
 	3250 6400 3150 6400
 Wire Wire Line
-	3150 6400 3150 4650
+	3150 6400 3150 5300
 Wire Wire Line
 	3150 4650 2500 4650
 Wire Wire Line
@@ -259,17 +259,6 @@ Wire Wire Line
 	4850 4600 6800 4600
 Wire Wire Line
 	4850 4600 4850 6200
-$Comp
-L Charleslabs_Parts:SD_Card_Module A1
-U 1 1 5EF39A06
-P 3750 2350
-F 0 "A1" H 4079 2396 50  0000 L CNN
-F 1 "SD_Card_Module" H 4079 2305 50  0000 L CNN
-F 2 "Charleslabs_Parts:SD_Card_Module" H 4700 2400 50  0001 C CNN
-F 3 "" H 3450 2700 50  0001 C CNN
-	1    3750 2350
-	-1   0    0    -1  
-$EndComp
 Wire Wire Line
 	4150 2200 5700 2200
 Wire Wire Line
@@ -306,7 +295,7 @@ U 1 1 5EF4923D
 P 1850 5600
 F 0 "R5" H 1920 5646 50  0000 L CNN
 F 1 "1k" H 1920 5555 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 1780 5600 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 1780 5600 50  0001 C CNN
 F 3 "~" H 1850 5600 50  0001 C CNN
 	1    1850 5600
 	1    0    0    -1  
@@ -317,7 +306,7 @@ U 1 1 5EF49FFF
 P 1850 6150
 F 0 "R7" H 1920 6196 50  0000 L CNN
 F 1 "1k" H 1920 6105 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 1780 6150 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 1780 6150 50  0001 C CNN
 F 3 "~" H 1850 6150 50  0001 C CNN
 	1    1850 6150
 	1    0    0    -1  
@@ -328,7 +317,7 @@ U 1 1 5EF4AFAB
 P 1850 6750
 F 0 "R6" H 1920 6796 50  0000 L CNN
 F 1 "1k" H 1920 6705 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P5.08mm_Vertical" V 1780 6750 50  0001 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 1780 6750 50  0001 C CNN
 F 3 "~" H 1850 6750 50  0001 C CNN
 	1    1850 6750
 	1    0    0    -1  
@@ -474,17 +463,14 @@ Wire Wire Line
 $Comp
 L power:GND #PWR0113
 U 1 1 5EF9D9E4
-P 1000 7100
-F 0 "#PWR0113" H 1000 6850 50  0001 C CNN
-F 1 "GND" H 1005 6927 50  0000 C CNN
-F 2 "" H 1000 7100 50  0001 C CNN
-F 3 "" H 1000 7100 50  0001 C CNN
-	1    1000 7100
+P 950 7600
+F 0 "#PWR0113" H 950 7350 50  0001 C CNN
+F 1 "GND" H 955 7427 50  0000 C CNN
+F 2 "" H 950 7600 50  0001 C CNN
+F 3 "" H 950 7600 50  0001 C CNN
+	1    950  7600
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	1000 7100 1000 6950
-Connection ~ 1000 6950
 Wire Wire Line
 	1700 6950 1850 6950
 Wire Wire Line
@@ -598,4 +584,125 @@ Wire Wire Line
 Wire Wire Line
 	6000 5200 6800 5200
 Connection ~ 1850 6950
+$Comp
+L Charleslabs_Parts:SD_Card_Module_catalex A1
+U 1 1 5EFD8B72
+P 3750 2350
+F 0 "A1" H 4079 2396 50  0000 L CNN
+F 1 "SD_Card_Module_catalex" H 4079 2305 50  0000 L CNN
+F 2 "Charleslabs_Parts:SD_Card_Module" H 4700 2400 50  0001 C CNN
+F 3 "" H 3450 2700 50  0001 C CNN
+	1    3750 2350
+	-1   0    0    -1  
+$EndComp
+$Sheet
+S 950  1000 850  500 
+U 5EFF5AE8
+F0 "Analogue" 50
+F1 "analogue.sch" 50
+$EndSheet
+$Comp
+L power:GND #PWR0115
+U 1 1 5F084344
+P 1750 4800
+F 0 "#PWR0115" H 1750 4550 50  0001 C CNN
+F 1 "GND" H 1755 4627 50  0000 C CNN
+F 2 "" H 1750 4800 50  0001 C CNN
+F 3 "" H 1750 4800 50  0001 C CNN
+	1    1750 4800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x07_Counter_Clockwise J3
+U 1 1 5F08E589
+P 1300 4300
+F 0 "J3" H 1350 4817 50  0000 C CNN
+F 1 "Conn_02x07_Counter_Clockwise" H 1350 4726 50  0000 C CNN
+F 2 "Package_DIP:DIP-14_W7.62mm_Socket" H 1300 4300 50  0001 C CNN
+F 3 "~" H 1300 4300 50  0001 C CNN
+	1    1300 4300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1750 4800 1750 4600
+Wire Wire Line
+	1750 4600 1600 4600
+Wire Wire Line
+	3150 4450 3150 4200
+Wire Wire Line
+	3150 4200 1600 4200
+Connection ~ 3150 4450
+Wire Wire Line
+	1600 4300 2050 4300
+Wire Wire Line
+	2050 4300 2050 5100
+Wire Wire Line
+	2050 5100 2500 5100
+Wire Wire Line
+	2500 5100 2500 5300
+Wire Wire Line
+	2500 5300 3150 5300
+Connection ~ 3150 5300
+Wire Wire Line
+	3150 5300 3150 4650
+$Comp
+L Device:R R8
+U 1 1 5F09D0C3
+P 1800 7300
+F 0 "R8" H 1870 7346 50  0000 L CNN
+F 1 "1k" H 1870 7255 50  0000 L CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 1730 7300 50  0001 C CNN
+F 3 "~" H 1800 7300 50  0001 C CNN
+	1    1800 7300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	950  7500 1000 7500
+Wire Wire Line
+	1650 7500 1800 7500
+Wire Wire Line
+	1800 7500 1800 7450
+$Comp
+L Switch:SW_SPST SW4
+U 1 1 5F09D0D0
+P 1450 7500
+F 0 "SW4" H 1450 7735 50  0000 C CNN
+F 1 "SW_SPST" H 1450 7644 50  0000 C CNN
+F 2 "Button_Switch_THT:SW_PUSH-12mm" H 1450 7500 50  0001 C CNN
+F 3 "~" H 1450 7500 50  0001 C CNN
+	1    1450 7500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1800 7500 2850 7500
+Connection ~ 1800 7500
+Wire Wire Line
+	950  7600 950  7500
+Wire Wire Line
+	1000 6950 1000 7500
+Connection ~ 1000 6950
+Connection ~ 1000 7500
+Wire Wire Line
+	1000 7500 1250 7500
+Wire Wire Line
+	2200 7150 2200 6600
+Wire Wire Line
+	1800 7150 2200 7150
+Connection ~ 2200 6600
+Wire Wire Line
+	2850 7500 2850 7300
+Wire Wire Line
+	2850 7300 6050 7300
+Wire Wire Line
+	6050 7300 6050 5300
+Wire Wire Line
+	6050 5300 6800 5300
+Text GLabel 6450 3700 0    50   Input ~ 0
+CAS_IN
+Text GLabel 6450 3600 0    50   Input ~ 0
+CAS_OUT
+Wire Wire Line
+	6450 3600 6800 3600
+Wire Wire Line
+	6800 3700 6450 3700
 $EndSCHEMATC

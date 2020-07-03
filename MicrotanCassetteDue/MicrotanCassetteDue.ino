@@ -4,6 +4,8 @@
 #include <SD.h>
 #include "miniOled.h"
 
+#define DEBUG 0
+
 void cmd_help(String cmd);
   
 // set up variables using the SD utility library functions:
@@ -29,7 +31,7 @@ const int statPin = 48;
 const int dataPin = 49;
 const int earPin = 44;
 const int switchPin = 5;
-const int MAX_BYTES = 20000;
+const int MAX_BYTES = 40000;
 const int chipSelect = 53;
 const int button1Pin = 46;
 const int button2Pin = 47;
@@ -56,7 +58,9 @@ typedef void (*FPTR)();
 typedef void (*CMD_FPTR)(String cmd);
 
 #define NUM_BUTTONS 3
-#define MAX_BUT_COUNT 4
+
+// Debounce
+#define MAX_BUT_COUNT 2
 
 int but_pins[NUM_BUTTONS] = {button1Pin, button2Pin, button3Pin};
 
@@ -1175,11 +1179,13 @@ int file_offset = 0;
 
 void but_ev_file_up()
 {
+#if DEBUG
   Serial.print("Before-menu_selection: ");
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
-
+#endif
+  
   if( menu_selection == 0 )
     {
       if( file_offset == 0 )
@@ -1194,25 +1200,34 @@ void but_ev_file_up()
     }
   else
     {
-      // Move ursor up
+      // Move cursor up
       menu_selection--;
     }
 
+#if DEBUG
   Serial.print("Before-menu_selection: ");
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
-
+#endif
+  
   button_list(NULL);
+
+  if( menu_selection >= menu_size )
+    {
+      menu_selection = menu_size - 1;
+    }
 }
 
 void but_ev_file_down()
 {
+#if DEBUG  
   Serial.print("Before-menu_selection: ");
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
-
+#endif
+  
   // Move cursor down one entry
   menu_selection++;
   
@@ -1238,14 +1253,16 @@ void but_ev_file_down()
     {
       menu_selection = menu_size - 1;
     }
-  
+
+#if DEBUG  
   Serial.print("Before-menu_selection: ");
   Serial.print(menu_selection);
   Serial.print("file_offset: ");
   Serial.println(file_offset);
   Serial.print("menu_size: ");
   Serial.println(menu_size);
-
+#endif
+  
   button_list(NULL);
 }
 
@@ -1293,6 +1310,7 @@ void button_list(MENU_ELEMENT *e)
       listfiles[num_listfiles].type = MENU_END;
       listfiles[num_listfiles].submenu = NULL;
       listfiles[num_listfiles].function = button_select_file;
+      entry.close();
       break;
     }
 
@@ -1303,12 +1321,13 @@ void button_list(MENU_ELEMENT *e)
       }
     else
       {
+#if DEBUG	
 	Serial.print("BList-file_n:");
 	Serial.print(file_n);
 	Serial.print(entry.name());
 	Serial.print("  num_listfiles:");
 	Serial.println(num_listfiles);
-
+#endif
 	// Create a new menu element
 	// we also don't want to display anything before the offset
 	if( file_n >= file_offset )
@@ -1337,6 +1356,12 @@ void button_list(MENU_ELEMENT *e)
   listfiles[num_listfiles].type = MENU_END;
   listfiles[num_listfiles].submenu = NULL;
   listfiles[num_listfiles].function = button_select_file;
+
+  // We know how big the menu is now
+  if( num_listfiles != 0 )
+    {
+      menu_size = num_listfiles;
+    }
   
   // Set up menu of file names
   current_menu = &(listfiles[0]);
@@ -1480,20 +1505,12 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
   while( e->type != MENU_END )
     {
       sprintf(etext, "%13s", e->text);
-      if( i == menu_selection )
-	{
-	  curs = '>';	  
-	}
-      else
-	{
-	  curs = ' ';
-	}
       
       switch(e->type)
 	{
 	case BUTTON_ELEMENT:
 	  Oled.setCursorXY(0, i);
-	  Oled.printChar(curs);
+	  //Oled.printChar(curs);
 	  if( clear,1 )
 	    {
 	      Oled.printString(etext, 1, i);
@@ -1502,7 +1519,7 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
 
 	case SUB_MENU:
 	  Oled.setCursorXY(0, i);
-	  Oled.printChar(curs);
+	  //Oled.printChar(curs);
 	  if ( clear,1 )
 	    {
 	      Oled.printString(etext, 1, i);
@@ -1514,9 +1531,12 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
     }
   
   menu_size = i;
+
+#if DEBUG
   Serial.print("menu_size:");
   Serial.println(menu_size);
-
+#endif
+  
   // Blank the other entries
   //make sure menu_selection isn't outside the menu
   if( menu_selection >= menu_size )
@@ -1527,6 +1547,21 @@ void draw_menu(struct MENU_ELEMENT *e, boolean clear)
   for(; i<MAX_LISTFILES; i++)
     {
       Oled.printString("               ", 0, i);
+    }
+
+  for(i=0;i<menu_size;i++)
+    {
+      if( i == menu_selection )
+	{
+	  curs = '>';	  
+	}
+      else
+	{
+	  curs = ' ';
+	}
+
+      Oled.setCursorXY(0, i);
+      Oled.printChar(curs);
     }
 }
 
