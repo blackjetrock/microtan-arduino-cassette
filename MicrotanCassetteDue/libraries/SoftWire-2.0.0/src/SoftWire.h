@@ -20,7 +20,7 @@ public:
 		readMode = 1,
 	};
 
-	static const uint8_t defaultDelay_us = 10;
+	static const uint8_t defaultDelay_us = 0;
 	static const uint16_t defaultTimeout_ms = 100;
 
 	static void sdaLow(const SoftWire *p);

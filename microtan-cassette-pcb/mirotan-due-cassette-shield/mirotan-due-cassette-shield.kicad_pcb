@@ -90,7 +90,7 @@
       (mirror false)
       (drillshape 0)
       (scaleselection 1)
-      (outputdirectory ""))
+      (outputdirectory "fab1/"))
   )
 
   (net 0 "")
@@ -3285,7 +3285,7 @@
   (segment (start 78.232 -34.798) (end 80.01 -33.02) (width 0.4) (layer F.Cu) (net 122))
   (segment (start 78.232 -40.894) (end 78.232 -34.798) (width 0.4) (layer F.Cu) (net 122))
 
-  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 0) (hatch edge 0.508)
+  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 5F00117F) (hatch edge 0.508)
     (connect_pads (clearance 0.508))
     (min_thickness 0.254)
     (fill yes (arc_segments 32) (thermal_gap 0.508) (thermal_bridge_width 0.508))

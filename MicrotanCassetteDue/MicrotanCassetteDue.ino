@@ -1438,7 +1438,7 @@ void button_display(MENU_ELEMENT *e)
 
   for(i=0; (i<bytecount) && (i<PAGE_LENGTH); i++)
     {
-      if( isprint(stored_bytes[i]) )
+      if( isprint(stored_bytes[i+display_offset]) )
 	{
 	  sprintf(ascii, "%c", stored_bytes[i+display_offset]);
 	}
