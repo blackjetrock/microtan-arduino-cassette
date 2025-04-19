@@ -3,7 +3,7 @@ Arduino based cassette system for Microtan computer
 
 Uses Arduino Mega or Uno, depending on how much memory you need. Uno has 2K RAM mega has 8K. You can't use all of it for a buffer to store cassette information.
 
-The connections to the cassette ointerface are not the external ones that attach to a tape recorder. They are instead pins 11 and 12 of connector B1 on the TANEX. This is logic level and removes the need for amplifiers and so on. Ground is also needed on B1.
+The connections to the cassette interface are not the external ones that attach to a tape recorder. They are instead pins 11 and 12 of connector B1 on the TANEX. This is logic level and removes the need for amplifiers and so on. Ground is also needed on B1.
 
 The code runs only in fast mode. The data read from the Microtan is dumped to a buffer that can then go to an SD card.
 
