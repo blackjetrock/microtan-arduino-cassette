@@ -9,7 +9,7 @@ The code runs only in fast mode. The data read from the Microtan is dumped to a 
 
 SD card read isn't working yet.
 
-When using the SAVE command the code dsplays data as it is received. The serial port on the Arduino runs at 115200 and there's enough time to send the bytes out of the port as the data is received.
+When using the SAVE command the code displays data as it is received. The serial port on the Arduino runs at 115200 and there's enough time to send the bytes out of the port as the data is received.
 
 Commands
 
